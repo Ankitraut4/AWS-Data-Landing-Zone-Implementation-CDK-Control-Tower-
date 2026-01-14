@@ -101,9 +101,98 @@ new DataLandingZone(app, {
   ],
 });
 
-----------------------------------------------------------
+```
 
 ## Usage (Python)
+
+pip install aws-data-landing-zone
+
+import aws_cdk as cdk
+import aws_data_landing_zone as dlz
+
+app = cdk.App()
+
+dlz.DataLandingZone(
+    app,
+    regions=dlz.DlzRegions(
+        global_=dlz.Region.EU_WEST_1,
+        regional=[dlz.Region.US_EAST_1],
+    ),
+)
+
+## Security & Compliance Considerations
+
+This project emphasizes **defense-in-depth**:
+
+- Centralized audit logging across all accounts
+- Preventive guardrails enforced via Service Control Policies (SCPs)
+- Least-privilege access using IAM Identity Center and permission boundaries
+- Network isolation using private subnets and controlled ingress/egress
+- Cost governance using AWS Budgets and tagging policies
+
+> **Note:** This project provides foundational infrastructure only.  
+> Regulatory compliance depends on organizational policies, operational controls, and ongoing governance.
+
+---
+
+## Intended Audience
+
+- Cloud / Platform Engineers
+- Infrastructure Engineers
+- Security Engineers
+- Cloud Center of Excellence (CCoE) teams
+
+**Out of scope**
+- Application development
+- Data engineering pipelines
+- Data science workloads
+
+---
+
+## Core Principles
+
+- Opinionated but configurable defaults
+- Security and governance first
+- Automation with controlled manual approvals
+- Simplicity over unnecessary abstraction
+- Clear separation of platform vs application concerns
+
+---
+
+## Integrated AWS Services
+
+- AWS Organizations
+- AWS Control Tower
+- Service Control Policies (SCPs)
+- AWS Config
+- AWS Security Hub
+- AWS Budgets
+- IAM Identity Center (SSO)
+- Amazon VPC, NAT, and SSM
+- AWS Lake Formation (optional configuration)
+
+---
+
+## How It Works
+
+- All accounts and resources are defined via a **single CDK construct**
+- Accounts are classified as **development or production**
+- Resources are deployed using **global and regional deployment waves**
+- Global resources (IAM, policies) deploy first
+- Regional resources (VPCs, networking) deploy afterward
+- Production deployments can require **manual approval**
+
+This deployment model minimizes risk and supports **enterprise change management**.
+
+---
+
+## Attribution
+
+This project uses the **open-source Data Landing Zone (DLZ) CDK construct**  
+maintained by **DataChef and the community**.
+
+This repository demonstrates **implementation and customization** of the construct  
+for learning and portfolio purposes.
 
 
 
