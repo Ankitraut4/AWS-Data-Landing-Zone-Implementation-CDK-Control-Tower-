@@ -1,0 +1,494 @@
+---
+title: Introduction
+description: Intro
+---
+
+import DualCode from "../../components/DualCode.astro";
+
+The **Data Landing Zone (DLZ)** is a CDK construct designed to accelerate AI and data-related projects. It provides an
+opinionated Landing Zone, laying the foundation for a multi-account AWS strategy, so you can focus on delivering data
+and AI solutions.
+
+The DLZ can be deployed in existing AWS Organizations or used in greenfield projects. It supports setups ranging
+from small organizations with a few accounts to large enterprises with hundreds of accounts.
+
+The CDK construct is available in both TypeScript and Python. Example GitHub repositories showing usage:
+
+- [TypeScript Example GitHub Repo](https://github.com/DataChefHQ/aws-data-landing-zone-example-typescript)
+- [Python Example GitHub Repo](https://github.com/DataChefHQ/aws-data-landing-zone-example-python)
+
+## Why do you need a Landing Zone?
+Setting up your AWS environment without a Landing Zone can be an overwhelming and time-consuming process. Without the
+right foundation in place, you'll face unnecessary complexity and delays. Managing multiple AWS accounts,
+implementing security best practices, and ensuring compliance will require a deep level of expertise and
+effort.
+
+Here's why a properly implemented Landing Zone is essential for accelerating your cloud journey:
+
+- **👩‍💻 Expert Knowledge:** To build a robust, scalable AWS environment, you need expertise in areas such as cloud architecture, IAM, networking, and cost optimization. A Landing Zone provides the necessary tools, templates, and automation, removing the need for constant, high-level expertise.
+- **📈 Scalability:** As your business grows, your cloud environment needs to grow with it. A Landing Zone ensures scalability and flexibility to meet future needs without compromising performance or security.
+- **⚡ Reduce Time To Market:** A well-architected Landing Zone streamlines account setup, networking, and security, ensuring a faster, more reliable deployment. Leaving you to focus on your Applications and not the cloud itself.
+- **🔧 Reduced Complexity:** With pre-configured guardrails and best practices, you avoid reinventing the wheel each time a new service or account is needed.
+- **🔒 Security and Compliance:** Landing Zones integrate security measures based on the AWS Well-Architected Framework, ensuring your environment is aligned with best practices for security, compliance, and risk management.
+
+
+## Key Features
+
+Notable features of the DLZ include:
+
+- A CDK construct that can be used in TS and Python
+- Opinionated but configurable and extendable. Each stack and nested component can be extended if needed.
+- Leverages AWS Control Tower. Works with existing or new AWS Control Tower setups.
+- Suitable for greenfield projects or integration with existing AWS resources.
+- Deployable using any build systems like GitHub, GitLab, Jenkins, or locally.
+- Generates compliance reports, reporting the Control Tower Standards, SecurityHub controls, Config Rules and
+- Service Control Policies enabled in each account.
+- Implements an internal wave- and stage-based deployment strategy for dependency management.
+- Includes helper scripts and Standard Operating Procedures (SOPs) for routine tasks.
+- Accompanied by comprehensive documentation.
+
+## How it works
+
+The DLZ defines all accounts and resources in a single CDK construct that can be used in Typescript or Python CDK
+project.
+
+The DLZ deploys resources into specified AWS accounts. These accounts must be created manually (SOP provided) in the
+workloads OU, and their Account IDs must be provided in the DLZ configuration. Each account is designated
+as either `development` or `production` to enable controlled, staged deployments, including the option for manual
+approvals in production environments.
+
+<DualCode>
+  <Fragment slot="ts">
+    ```ts
+    import {App} from 'aws-cdk-lib';
+    import { DataLandingZone, Defaults } from 'aws-data-landing-zone';
+
+    const app = new App();
+    const dlz = new DataLandingZone(app, {
+      ...
+      regions: {
+        global: Region.EU_WEST_1,
+        regional: [Region.US_EAST_1],
+      },
+      budgets: [
+        ...Defaults.budgets(100, 20, {
+          slack: slackBudgetNotifications,
+          emails: ['you@org.com'],
+        }),
+      ],
+      denyServiceList: [
+        ...Defaults.denyServiceList(),
+        'ecs:*',
+      ],
+      organization: {
+        organizationId: 'o-0f5h921gk9',
+        root: { accounts: { management: { accountId: '123456789012', }, }, },
+        ous: {
+          workloads: {
+            ouId: 'ou-h2l0-gjr36ikn',
+            accounts: [{
+                name: 'development',
+                accountId: '123456789012',
+                type: DlzAccountType.DEVELOP,
+                vpcs: [
+                  Defaults.vpcClassB3Private3Public(0, Region.EU_WEST_1), // CIDR 10.0.0./19
+                  Defaults.vpcClassB3Private3Public(1, Region.US_EAST_1), // CIDR 10.1.0./19
+                ]
+              },{
+                name: 'production',
+                accountId: '123456789012',
+                type: DlzAccountType.PRODUCTION,
+                ...
+              },
+
+              ...AS MANY ACCOUNTS AS DESIRED...
+              ]
+          },
+       },
+       ...
+      },
+      network: {
+        nats: [
+          {
+            name: "development-eu-west-1-internet-access",
+            location: new NetworkAddress('development', Region.EU_WEST_1, 'default', 'public', 'public-1'),
+            allowAccessFrom: [
+              new NetworkAddress('development', Region.EU_WEST_1, 'default', 'private')
+            ],
+            type: {
+              gateway: {
+                eip: ... //Optional
+              }
+            }
+          },
+        ],
+        bastionHosts: [
+          {
+            name: 'default',
+            location: new NetworkAddress('development', Region.EU_WEST_1, 'default', 'private', 'private-1'),
+            instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.MICRO),
+          }
+        ]
+      }
+    });
+    ```
+
+  </Fragment>
+  <Fragment slot="python">
+    ```python
+    import aws_cdk as cdk
+    import aws_data_landing_zone as dlz
+
+    app = cdk.App()
+    dlz.DataLandingZone(app,
+        ...
+        regions=dlz.DlzRegions(
+            global_=dlz.Region.EU_WEST_1,
+            regional=[dlz.Region.US_EAST_1],
+        ),
+        budgets=[
+            *dlz.Defaults.budgets(
+                100,
+                20,
+                slack=slack_budget_notifications,
+                emails=["you@org.com"],
+            ),
+        ],
+        deny_service_list=[
+            *dlz.Defaults.deny_service_list(),
+            "ecs:*"
+        ],
+        organization=dlz.DLzOrganization(
+            organization_id='o-0f5h921gk9',
+            root=dlz.RootOptions(
+                accounts=dlz.OrgRootAccounts(
+                    management=dlz.DLzManagementAccount(account_id='123456789012'),
+                ),
+            ),
+            ous=dlz.OrgOus(
+                workloads=dlz.OrgOuWorkloads(
+                    ou_id='ou-h2l0-gjr36ikn',
+                    accounts=[
+                        dlz.DLzAccount(
+                            name='development',
+                            account_id='123456789012',
+                            type=dlz.DlzAccountType.DEVELOP,
+                            vpcs: [
+                                dlz.Defaults.vpc_class_b3_private3_public(0, dlz.Region.EU_WEST_1), # CIDR 10.0.0./19
+                                dlz.Defaults.vpc_class_b3_private3_public(1, dlz.Region.US_EAST_1), # CIDR 10.1.0./19
+                            ]
+                        ),
+                        dlz.DLzAccount(
+                            name='production',
+                            account_id='123456789012',
+                            type=dlz.DlzAccountType.PRODUCTION,
+                        ),
+                    ],
+                ),
+            )
+        ),
+        network={
+            "nats": [
+                {
+                    "name": "development-eu-west-1-internet-access",
+                    "location": NetworkAddress(
+                      "development",  str(Region.EU_WEST_1), "default", "public", "public-1",
+                    ),
+                    "allow_access_from": [
+                        NetworkAddress(
+                            "development", str(Region.EU_WEST_1), "default", "private"
+                        ),
+                    ],
+                    "type": {
+                        "gateway": {
+                        },
+                    },
+                },
+            ],
+            "bastion_hosts": [
+                {
+                    "name": "default",
+                    "location": NetworkAddress(
+                        "development",  str(Region.EU_WEST_1), "default", "public", "public-1",
+                    ),
+                    "instance_type": ec2.InstanceType.of(
+                        ec2.InstanceClass.T3, ec2.InstanceSize.MICRO
+                    ),
+                }
+            ]
+        }
+    )
+````
+
+  </Fragment>
+</DualCode>
+
+## Intended Audience
+
+The DLZ handles the responsibilities and routine tasks typically managed by a Cloud Center of Excellence (CCoE) team.
+It's easy enough for Data Engineers to use on their own, but flexible enough to be customized and fine-tuned by
+experienced Cloud Engineers.
+
+It's important to establish the following responsibilities to understand what is in and out of scope for the DLZ:
+
+- **In scope** - Any CCoE responsibilities and tasks, such as account management, security, networking, compliance, etc.
+- **Out of scope** - Application development, data engineering, and data science tasks.
+
+
+## Core Principles
+
+The DLZ adheres to the following principles:
+
+1. Opinionated but configurable defaults to suit diverse needs.
+2. High levels of automation with manual SOPs where needed.
+3. Simplicity and ease of understanding over complexity
+4. Focused scope, limited to Landing Zone responsibilities.
+
+## Integrated AWS Services
+
+- **AWS Organizations:** Seamless multi-account management.
+- **AWS Budgets:** Track spending by tags with notifications via Slack, Teams, or email.
+- **Service Control Policies (SCPs):** Manage service deny lists.
+- **Tag Policies:** Enforce resource tagging for spend tracking and ownership.
+- **Control Tower Controls:** Opinionated defaults for preventive, detective, and proactive standards.
+- **AWS Security Hub** and **AWS Config:** Additional standards not covered by Control Tower. Notifications are
+  delivered via Slack, Teams, or email
+- **Network Management:**
+  - Non-overlapping **VPCs** across accounts.
+  - **NAT Gateways** or instances for outbound private access.
+  - **VPC Peering** for cross-account/region communication.
+  - **Bastion Hosts** with **AWS SSM** for secure private resource access.
+  - Simplified routing configurations.
+- **IAM Identity Center (SSO):**
+  - User management with **AWS Identity Store** or external IDPs (e.g., Google, Active Directory).
+  - Manage **Permission Sets**
+  - Manage **Access Groups** to assign Users to Accounts with a given Permission Set
+- **Permission Boundaries:** Prevent privilege escalation for all IAM roles and users.
+- Configure **Lake Formation** for Data Lake management, including:
+  - General settings, like admins, version and setting hybrid iam mode
+  - Create **Tags** and specify their permissions for use within the same account and when sharing to other accounts.
+  - Optionally, set **Tag Permissions** on Tags. This is usually out of scope for DLZ, but can be configured.
+
+## Internal Structure
+
+The construct processes the provided configuration to create logical deployment layers for resources. Each layer
+consists of a Global Wave and optionally one or more Regional Waves. This structure ensures that all `global` stacks
+for the accounts are deployed before the `regional` stacks. Resources in the `global` stack are region-independent, such
+as IAM roles, whereas resources like VPCs can be deployed in both `global` and `regional` stacks if configured as such.
+
+```mermaid
+graph
+    subgraph base["Base Layer"]
+      direction TB
+
+      subgraph global["Global Wave"]
+        direction TB
+        subgraph globalAccountN["Account ...N"]
+          direction TB
+          gan["Global Stack"]
+        end
+         subgraph globalAccountB["Account B"]
+          direction TB
+          gab["Global Stack"]
+        end
+        subgraph globalAccountA["Account A"]
+          direction TB
+          gaa["Global Stack"]
+        end
+      end
+
+      subgraph regional["Regional Wave"]
+        direction TB
+        subgraph regionalAccountN["Account ...N"]
+          ran1["Region Stack (1)"]
+          ran2["Region Stack (2)"]
+        end
+        subgraph regionalAccountB["Account B"]
+          rab1["Region Stack (1)"]
+          rab2["Region Stack (2)"]
+        end
+        subgraph regionalAccountA["Account A"]
+          raa1["Region Stack (1)"]
+          raa2["Region Stack (2)"]
+        end
+      end
+      global --> regional
+    end
+````
+
+Dependencies between regions and accounts are managed by separating stacks into waves. This ensures that any
+specified SSM Parameter value is available for use in subsequent waves.
+
+The [cdk-express-pipeline](https://github.com/rehanvdm/cdk-express-pipeline) is utilized to create Waves and Stages,
+enabling the controlled deployment of resources as described above. It allows deployments from any build
+systems, including GitHub, GitLab, Jenkins, and even local environments.
+
+The construct processes the configuration to provision the appropriate resources in the required accounts.
+
+For example, the following config enables VPC Peering from both the `development` VPCs in `eu-west-1` and `us-east-1`,
+all subnets, to the private subnets in the `production` account's VPC in the `eu-west-1` region.
+
+<DualCode>
+  <Fragment slot="ts">
+    ```ts {54-57}
+    import {App} from 'aws-cdk-lib';
+    import { DataLandingZone } from 'aws-data-landing-zone';
+
+    const app = new App();
+    const dlz = new DataLandingZone(app, {
+      regions: {
+        global: Region.EU_WEST_1,
+        regional: [Region.US_EAST_1],
+      },
+      organization: {
+        ous: {
+          workloads: {
+            ouId: 'ou-h2l0-gjr36ikn',
+            accounts: [{
+                name: 'development',
+                vpcs: [
+                  {
+                    name: 'default', region: Region.EU_WEST_1,
+                    cidr: '10.0.0.0/16', routeTables:
+                    [
+                      { name: 'private', subnets: [ ... ] },
+                      { name: 'public', subnets: [ ... ] }
+                    ],
+                  },
+                  {
+                    name: 'default', region: Region.US_EAST_1,
+                    cidr: '10.1.0.0/16', routeTables:
+                    [
+                      { name: 'private', subnets: [ ... ] },
+                      { name: 'public', subnets: [ ... ] }
+                    ],
+                  },
+                ],
+              },{
+                name: 'production',
+                vpcs: [
+                  {
+                    name: 'default', region: Region.EU_WEST_1,
+                    cidr: '10.2.0.0/16', routeTables:
+                    [
+                      { name: 'private', subnets: [ ... ] },
+                      { name: 'public', subnets: [ ... ] }
+                    ],
+                  },
+                ],
+                ...
+              }]
+          },
+       },
+       ...
+     },
+     network: {
+      connections: {
+        vpcPeering: [{
+          source: NetworkAddress.fromString('development'),
+          destination: NetworkAddress.fromString('production.us-east-1.default.private'),
+        }],
+      },
+     },
+     ...
+    });
+    ```
+
+  </Fragment>
+  <Fragment slot="python">
+    ```python {79-84}
+    import aws_cdk as cdk
+    import aws_data_landing_zone as dlz
+
+    app = cdk.App()
+    dlz.DataLandingZone(app,
+        regions=dlz.DlzRegions(
+            global_=dlz.Region.EU_WEST_1,
+            regional=[dlz.Region.US_EAST_1],
+        ),
+        organization=dlz.DLzOrganization(
+            ous=dlz.OrgOus(
+                workloads=dlz.OrgOuWorkloads(
+                    ou_id='ou-vh4d-nc2zzf9z',
+                    accounts=[
+                        dlz.DLzAccount(
+                            name='development',
+                            vpcs=[
+                                dlz.DlzVpcProps(
+                                    name='default',
+                                    region=dlz.Region.EU_WEST_1,
+                                    cidr='10.0.0.0/16',
+                                    route_tables=[
+                                        dlz.DlzRouteTableProps(
+                                            name='private',
+                                            subnets=[ ... ],
+                                        ),
+                                        dlz.DlzRouteTableProps(
+                                            name='public',
+                                            subnets=[ ...],
+                                        )
+                                    ]
+                                ),
+                                dlz.DlzVpcProps(
+                                    name='default',
+                                    region=dlz.Region.US_EAST_1,
+                                    cidr='10.1.0.0/16',
+                                    route_tables=[
+                                        dlz.DlzRouteTableProps(
+                                            name='private',
+                                            subnets=[ ... ],
+                                        ),
+                                        dlz.DlzRouteTableProps(
+                                            name='public',
+                                            subnets=[ ...],
+                                        )
+                                    ]
+                                )
+                            ],
+                        ),
+                        dlz.DLzAccount(
+                            name='production',
+                            vpcs=[
+                                dlz.DlzVpcProps(
+                                    name='default',
+                                    region=dlz.Region.EU_WEST_1,
+                                    cidr='10.2.0.0/16',
+                                    route_tables=[
+                                        dlz.DlzRouteTableProps(
+                                            name='private',
+                                            subnets=[ ... ],
+                                        ),
+                                        dlz.DlzRouteTableProps(
+                                            name='public',
+                                            subnets=[ ...],
+                                        )
+                                    ]
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+                suspended=dlz.OrgOuSuspended(
+                    ou_id='ou-vh4d-rhcmhzsy',
+                ),
+            )
+        ),
+        network=dlz.Network(
+            connections=dlz.NetworkConnection(
+                vpc_peering=[
+                    dlz.NetworkConnectionVpcPeering(
+                        source=dlz.NetworkAddress.from_string('development'),
+                        target=dlz.NetworkAddress.from_string('production.us-east-1.default.private')
+                    )
+                ]
+            )
+        )
+    )
+    ```
+
+  </Fragment>
+</DualCode>
+
+The DLZ abstracts the complexity of the AWS resources and ensures that the correct resources are created in the
+correct accounts in the right order. For instance, this example provisions the VPCs in the Base Layer and sets up the
+many VPC Peering roles, connections, and routes within the Networking Layers.

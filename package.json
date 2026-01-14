@@ -1,0 +1,187 @@
+{
+  "name": "aws-data-landing-zone",
+  "description": "AWS CDK Data Landing Zone construct",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DataChefHQ/aws-data-landing-zone.git"
+  },
+  "scripts": {
+    "build": "npx projen build",
+    "bump": "npx projen bump",
+    "bundle": "npx projen bundle",
+    "bundle:constructs/iam-identity-center/identity-store-user-lambda": "npx projen bundle:constructs/iam-identity-center/identity-store-user-lambda",
+    "bundle:constructs/iam-identity-center/identity-store-user-lambda:watch": "npx projen bundle:constructs/iam-identity-center/identity-store-user-lambda:watch",
+    "bundle:constructs/iam/lambda/iam-account-alias": "npx projen bundle:constructs/iam/lambda/iam-account-alias",
+    "bundle:constructs/iam/lambda/iam-account-alias:watch": "npx projen bundle:constructs/iam/lambda/iam-account-alias:watch",
+    "clear-lib-and-dist": "npx projen clear-lib-and-dist",
+    "clobber": "npx projen clobber",
+    "compat": "npx projen compat",
+    "compile": "npx projen compile",
+    "default": "npx projen default",
+    "docgen": "npx projen docgen",
+    "eject": "npx projen eject",
+    "eslint": "npx projen eslint",
+    "package": "npx projen package",
+    "package-all": "npx projen package-all",
+    "package:js": "npx projen package:js",
+    "package:python": "npx projen package:python",
+    "post-compile": "npx projen post-compile",
+    "post-upgrade": "npx projen post-upgrade",
+    "pre-compile": "npx projen pre-compile",
+    "release": "npx projen release",
+    "test": "npx projen test",
+    "test:watch": "npx projen test:watch",
+    "unbump": "npx projen unbump",
+    "upgrade": "npx projen upgrade",
+    "watch": "npx projen watch",
+    "projen": "npx projen",
+    "prepare": "if [ \"$CI\" = \"true\" ]; then echo \"CI detected, not running husky\"; else husky; fi"
+  },
+  "author": {
+    "name": "DataChefHQ",
+    "email": "hi@datachef.co",
+    "organization": false
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "^2",
+    "@types/aws-lambda": "^8.10.157",
+    "@types/aws-sdk": "^0.0.42",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^18",
+    "@typescript-eslint/eslint-plugin": "^8",
+    "@typescript-eslint/parser": "^8",
+    "aws-cdk-lib": "2.133.0",
+    "commit-and-tag-version": "^12",
+    "constructs": "10.0.5",
+    "esbuild": "^0.25.12",
+    "eslint": "^9",
+    "eslint-import-resolver-typescript": "^3.10.1",
+    "eslint-plugin-import": "^2.32.0",
+    "husky": "^9.1.7",
+    "jest": "^29.7.0",
+    "jest-junit": "^16",
+    "jsii": "~5.7.0",
+    "jsii-diff": "^1.118.0",
+    "jsii-docgen": "^10.5.0",
+    "jsii-pacmak": "^1.118.0",
+    "jsii-rosetta": "~5.7.0",
+    "projen": "^0.98.9",
+    "ts-jest": "^29.4.5",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.5.0"
+  },
+  "peerDependencies": {
+    "aws-cdk-lib": "^2.133.0",
+    "cdk-express-pipeline": "^1.6.0",
+    "constructs": "^10.0.5"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudformation": "^3.926.0",
+    "@aws-sdk/client-cost-explorer": "^3.926.0",
+    "@aws-sdk/client-iam": "^3.926.0",
+    "@aws-sdk/client-identitystore": "^3.926.0",
+    "@aws-sdk/client-sso-admin": "^3.926.0",
+    "@aws-sdk/client-sts": "^3.926.0",
+    "@aws-sdk/credential-providers": "^3.926.0",
+    "@types/js-yaml": "^4.0.9",
+    "cdk-express-pipeline": "^1.6.0",
+    "js-yaml": "^4.1.0",
+    "table": "^6.9.0"
+  },
+  "bundledDependencies": [
+    "@aws-sdk/client-cloudformation",
+    "@aws-sdk/client-cost-explorer",
+    "@aws-sdk/client-iam",
+    "@aws-sdk/client-identitystore",
+    "@aws-sdk/client-sso-admin",
+    "@aws-sdk/client-sts",
+    "@aws-sdk/credential-providers",
+    "@types/js-yaml",
+    "js-yaml",
+    "table"
+  ],
+  "keywords": [
+    "cdk"
+  ],
+  "engines": {
+    "node": "~20.*",
+    "npm": "~10.*"
+  },
+  "main": "lib/index.js",
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "version": "0.0.0",
+  "jest": {
+    "coverageProvider": "v8",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "mjs",
+      "cjs",
+      "jsx",
+      "json",
+      "node"
+    ],
+    "testMatch": [
+      "<rootDir>/@(src|test)/**/*(*.)@(spec|test).ts?(x)",
+      "<rootDir>/@(src|test)/**/__tests__/**/*.ts?(x)",
+      "<rootDir>/@(projenrc)/**/*(*.)@(spec|test).ts?(x)",
+      "<rootDir>/@(projenrc)/**/__tests__/**/*.ts?(x)"
+    ],
+    "clearMocks": true,
+    "collectCoverage": true,
+    "coverageReporters": [
+      "json",
+      "lcov",
+      "clover",
+      "cobertura",
+      "text"
+    ],
+    "coverageDirectory": "coverage",
+    "coveragePathIgnorePatterns": [
+      "/node_modules/"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/"
+    ],
+    "watchPathIgnorePatterns": [
+      "/node_modules/"
+    ],
+    "reporters": [
+      "default",
+      [
+        "jest-junit",
+        {
+          "outputDirectory": "test-reports"
+        }
+      ]
+    ],
+    "transform": {
+      "^.+\\.[t]sx?$": [
+        "ts-jest",
+        {
+          "tsconfig": "tsconfig.dev.json"
+        }
+      ]
+    }
+  },
+  "types": "lib/index.d.ts",
+  "stability": "stable",
+  "jsii": {
+    "outdir": "dist",
+    "targets": {
+      "python": {
+        "distName": "aws-data-landing-zone",
+        "module": "aws_data_landing_zone"
+      }
+    },
+    "tsc": {
+      "outDir": "lib",
+      "rootDir": "src"
+    }
+  },
+  "//": "~~ Generated by projen. To modify, edit .projenrc.ts and run \"npx projen\"."
+}

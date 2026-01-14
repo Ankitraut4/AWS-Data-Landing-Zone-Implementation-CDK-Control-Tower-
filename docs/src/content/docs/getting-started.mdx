@@ -1,0 +1,329 @@
+---
+title: Getting Started
+description: Step-by-step guide to configuring and deploying the Data Landing Zone
+---
+
+import DualCode from "../../components/DualCode.astro";
+
+This guide provides a step-by-step walkthrough for configuring and deploying the **Data Landing Zone** (DLZ). The DLZ
+streamlines the setup of a secure, scalable, and well-architected multi-account AWS environment. Let’s get started!
+
+## Quick Start
+
+### Prerequisites
+
+Before starting, ensure you have the following tools installed and configured:
+
+- **AWS CLI**: Installed and configured with credentials. Use an **SSO User** or **IAM User** in the **management
+account** with admin access or permissions to assume CDK roles and perform deployments. Ensure the AWS profile is
+properly configured in your `~/.aws` config files.
+- **Node.js**: Version 18 or higher.
+- **AWS CDK**: Installed globally using `npm install -g aws-cdk`.
+
+### Step 1: Create a New CDK Project
+
+Begin by creating a new AWS CDK project:
+
+<DualCode>
+  <Fragment slot="ts">
+    ```bash
+    mkdir my-data-landing-zone
+    cd my-data-landing-zone
+    cdk init app --language=typescript
+    ```
+  </Fragment>
+  <Fragment slot="python">
+    ```bash
+    mkdir my-data-landing-zone
+    cd my-data-landing-zone
+    cdk init app --language=python
+    ```
+  </Fragment>
+</DualCode>
+
+### Step 2: Install the package
+
+Install the AWS Data Landing Zone package:
+
+<DualCode>
+  <Fragment slot="ts">
+    ```bash
+    npm install aws-data-landing-zone
+    ```
+  </Fragment>
+  <Fragment slot="python">
+    ```bash
+    pip install aws-data-landing-zone
+    ```
+  </Fragment>
+</DualCode>
+
+### Step 3: Create the Configuration
+
+Define the basic configuration parameters for the DLZ. It is recommended to create this configuration in a separate file,
+such as `config.ts` or `config.py`, as it will be used by both CDK and local scripts.
+
+Refer to the example projects for guidance:
+- [DLZ TypeScript Example Repository](https://github.com/DataChefHQ/aws-data-landing-zone-example-typescript)
+- [DLZ Python Example Repository](https://github.com/DataChefHQ/aws-data-landing-zone-example-python)
+
+The configuration requires the following:
+
+1. **Control Tower**: Ensure Control Tower is already set up. For details, see
+[SOP - Control Tower Setup](/sop/initial-control-tower-setup).
+2. **Local Profile**: Specify the AWS profile for local scripts like deploy and bootstrap.
+See [Scripts and Commands](/reference/scripts-commands) for more details.
+3. **Regions**: Define the global and regional AWS regions. The global(home) region is where Control Tower is deployed,
+while the regional regions are additional managed regions. See [Regions](/components/account-management/regions)
+for more information.
+4. **Mandatory Tags**: Specify the mandatory tag values required for resources. Refer to
+[Tagging](/components/account-management/tagging) for details.
+5. **AWS Organization**: Provide details about your AWS Organization, including the Organization ID, OU IDs, and
+Account IDs. Copy the IDs of accounts created by Control Tower, such as the management, security log, and security
+audit accounts. Additional accounts can be created manually or moved under the Workloads OU.. In the code snippet
+below, we define a single development account.
+
+<DualCode>
+  <Fragment slot="ts">
+    ```ts
+    // bin/config.ts
+    export const config: DataLandingZoneProps = {
+      localProfile: 'YourAwsProfile',
+      regions: {
+        global: Region.CHOOSE_A_GLOBAL_REGION,
+        regional: [Region.CHOOSE_ONE_OR_MORE_ADDITIONAL_REGIONS],
+      },
+      mandatoryTags: {
+        owner: ['ALLOWED_VALUES'],
+        project: ['ALLOWED_VALUES'],
+        environment: ['ALLOWED_VALUES'],
+      },
+      budgets: [
+        ...Defaults.budgets(100, 20, {}),
+      ],
+      securityHubNotifications: [
+      ],
+      organization: {
+        organizationId: 'OrganizationID',
+        root: {
+          accounts: {
+            management: {
+              accountId: 'YourRootAccountID',
+            },
+          },
+          controls: [],
+        },
+        ous: {
+          security: {
+            ouId: 'SecurityOrganizationUnitId',
+            accounts: {
+              log: {
+                accountId: 'YourLogsAccountID',
+              },
+              audit: {
+                accountId: 'YourAuditAccountID',
+              },
+            },
+          },
+          workloads: {
+            ouId: 'WorkloadOrganizationUnitId',
+            accounts: [
+              {
+                name: 'development',
+                accountId: 'YourDevelopmentAccountID',
+                type: DlzAccountType.DEVELOP,
+              },
+            ],
+          },
+          suspended: {
+            ouId: 'SuspendedOrganizationUnitId',
+          },
+        },
+      },
+  };
+  ```
+  </Fragment>
+  <Fragment slot="python">
+    ```python
+    # my_data_landing_zone/config.py
+    config = DataLandingZoneProps(
+      local_profile="YourAwsProfile",
+      regions={
+          "global_": Region.CHOOSE_A_GLOBAL_REGION,
+          "regional": [Region.CHOOSE_ONE_OR_MORE_ADDITIONAL_REGIONS],
+      },
+      mandatory_tags={
+          "owner": ["ALLOWED_VALUES"],
+          "project": ["ALLOWED_VALUES"],
+          "environment": ["ALLOWED_VALUES"],
+      },
+      budgets=Defaults.budgets(100, 20),
+      security_hub_notifications=[],
+      organization={
+          "organization_id": "OrganizationID",
+          "root": {
+              "accounts": {
+                  "management": {
+                      "account_id": "YourRootAccountID",
+                  },
+              },
+          },
+          "ous": {
+              "security": {
+                  "ou_id": "SecurityOrganizationUnitId",
+                  "accounts": {
+                      "log": {
+                          "account_id": "YourLogsAccountID",
+                      },
+                      "audit": {
+                          "account_id": "YourAuditAccountID",
+                      },
+                  },
+              },
+              "workloads": {
+                  "ou_id": "WorkloadOrganizationUnitId",
+                  "accounts": [
+                      {
+                          "name": "development",
+                          "account_id": "YourDevelopmentAccountID",
+                          "type": DlzAccountType.DEVELOP,
+                      },
+                  ],
+              },
+              "suspended": {
+                  "ou_id": "SuspendedOrganizationUnitId",
+              },
+          },
+      },
+    )
+    ```
+  </Fragment>
+</DualCode>
+
+
+### Step 4: Use the Configuration in CDK
+
+Pass the configuration to the Data Landing Zone construct. This will create the necessary stacks in the appropriate
+AWS accounts and regions. For more information, see [Deployment Order](/components/build-system/deployment-order).
+
+<DualCode>
+  <Fragment slot="ts">
+    ```ts
+    // bin/my-data-landing-zone.ts
+    import {App} from 'aws-cdk-lib';
+    import {config} from "./config";
+    import { DataLandingZone } from 'aws-data-landing-zone';
+
+    const app = new App();
+    const dlz = new DataLandingZone(app, config)
+    ```
+  </Fragment>
+  <Fragment slot="python">
+    ```python
+    // app.py
+    import aws_cdk as cdk
+    from aws_data_landing_zone import ( DataLandingZone )
+    from my_data_landing_zone.config import config
+
+    app = cdk.App()
+    DataLandingZone(app, config)
+    ```
+  </Fragment>
+</DualCode>
+
+### Step 5: Bootstrap Accounts
+
+All accounts and regions need to be CDK bootstrapped before deploying.
+
+The DLZ provides utility functions that abstract the complexity of common tasks such as bootstrapping accounts across
+regions, running CDK diff or deploy commands, setting cost allocation tags, and more.
+
+Use the `bootstrapAll` script or perform the process manually using bash and AWS CDK commands.
+See [Scripts and Commands](/reference/scripts-commands) for more details.
+
+Let's use the scripts. Create a standalone script file (e.g., `scripts/bootstrap.ts` or `scripts/bootstrap.py`) to handle bootstrapping.
+The script uses the configuration file to identify the accounts and regions requiring bootstrap. This is why the
+configuration file is standalone file, to be shared between the CDK and the scripts.
+
+<DualCode>
+  <Fragment slot="ts">
+    ```ts
+    // scripts/bootstrap.ts
+    import { Scripts } from "aws-data-landing-zone";
+    import { config } from "../bin/config";
+
+    (async () => {
+      await (new Scripts()).boostrapAll(config);
+    })();
+    ```
+
+    Then run the script:
+    ```bash
+    npx ts-node --prefer-ts-exts scripts/bootstrap.ts
+    ```
+  </Fragment>
+  <Fragment slot="python">
+    ```python
+    // scripts/bootstrap.py
+    from aws_data_landing_zone import Scripts
+    from data_landing_zone_example_python.config_minimum import config
+
+    scripts = Scripts()
+    scripts.bootstrap_all(props=config)
+    ```
+
+    Then run the script:
+    ```bash
+    python scripts/bootstrap.py
+    ```
+  </Fragment>
+</DualCode>
+
+### Step 6: Deploy
+
+Similar to the `bootstrapAll` script, a `deployAll`(`deploy_all`) script is also available.
+
+<DualCode>
+  <Fragment slot="ts">
+    ```ts
+    // scripts/deploy_all.ts
+    import { Scripts } from "aws-data-landing-zone";
+    import { config } from "../bin/config";
+
+    (async () => {
+    await (new Scripts()).deployAll(config);
+  })();
+    ```
+
+    Then run the script:
+    ```bash
+    npx ts-node --prefer-ts-exts scripts/deploy_all.ts
+    ```
+  </Fragment>
+  <Fragment slot="python">
+    ```python
+    // scripts/deploy_all.py
+    from aws_data_landing_zone import Scripts
+    from data_landing_zone_example_python.config_minimum import config
+
+    scripts = Scripts()
+    scripts.deploy_all(props=config)
+    ```
+
+    Then run the script:
+    ```bash
+    python scripts/deploy_all.py
+    ```
+  </Fragment>
+</DualCode>
+
+Alternatively deploy the CDK application with the following command:
+```bash
+cdk deploy "**" --require-approval never --progress events --concurrency 10 --profile YourAwsProfile
+```
+
+## Next Steps
+
+This guide covers the minimal setup required to get started. At this stage, only a few resources are deployed. Explore
+the documentation to learn about advanced configurations and features, such as creating non-overlapping VPCs, bastions,
+NAT gateways, Lake Formation setups and many more.
