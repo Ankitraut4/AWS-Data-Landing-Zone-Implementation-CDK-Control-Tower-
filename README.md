@@ -104,7 +104,7 @@ new DataLandingZone(app, {
 ```
 
 ## Usage (Python)
-
+```
 pip install aws-data-landing-zone
 
 import aws_cdk as cdk
@@ -119,7 +119,7 @@ dlz.DataLandingZone(
         regional=[dlz.Region.US_EAST_1],
     ),
 )
-
+```
 ## Security & Compliance Considerations
 
 This project emphasizes **defense-in-depth**:
